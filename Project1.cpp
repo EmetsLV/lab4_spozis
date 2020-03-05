@@ -23,7 +23,7 @@ BOOL WINAPI MakeSlot(LPCTSTR lpszSlotName, LPCTSTR SlotName, int rr);//созд�
 LPCTSTR SlotNameServer = TEXT("\\\\.\\mailslot\\server_mailslot");//ящик сервера 
 LPCTSTR SlotNameClient1 = TEXT("\\\\.\\mailslot\\client1_mailslot");//ящик первого клиента 
 LPCTSTR SlotNameClient2 = TEXT("\\\\.\\mailslot\\client2_mailslot");//ящик второго клиента
-void pp0(); void pp1(); void pp2();//действия потоков
+void ms0(); void ms1(); void ms2();//действия потоков
 
 int main()
 {
@@ -38,9 +38,9 @@ int main()
         int n; cin >> n;
         switch (n) {
         case 0: {
-            thread potok0(pp0); thread potok1(pp1); thread potok2(pp2);
+            thread potok0(ms0); thread potok1(ms1); thread potok2(ms2);
             potok0.join();//запускаем поток
-            Sleep(9000);//ждём
+            //Sleep(9000);//ждём
             potok1.join(); potok2.join();//запускаем поток    
             cout << "Удаление почтовых ящиков" << endl;
             break;
@@ -61,7 +61,7 @@ int main()
     _getch();return 0;
 }
 
-void pp0() {
+void ms0() {
     MakeSlot(SlotNameServer, TEXT(" сервера "),0); int h = 0; Sleep(5000);//ждём
     cout << "\n====|Почтовый ящик сервера|====\n";
     while (TRUE) {        
@@ -69,12 +69,12 @@ void pp0() {
         Sleep(2800);h=h+1;
         if (h == 3) { cout << "Конец ожидания" << endl; break; }
     }
-    Sleep(3000);
+    Sleep(5000);
     WritingtoaMailslot(SlotNameClient1, TEXT("Сообщение от сервера для первого клиента"));
     WritingtoaMailslot(SlotNameClient2, TEXT("Сообщение от сервера для второго клиента"));
 }
 void pp1() {
-    WritingtoaMailslot(SlotNameServer,TEXT("Первое сообщение для сервера ")); Sleep(16000);
+    Sleep(1000);WritingtoaMailslot(SlotNameServer,TEXT("Первое сообщение для сервера ")); Sleep(16000);
     MakeSlot(SlotNameClient1, TEXT(" клиента1 "),1);  int h = 0; Sleep(5000);//ждём
     cout << "\n====|Почтовый ящик первого клиента|====\n";
     while (TRUE) {
@@ -84,7 +84,7 @@ void pp1() {
     }
 }
 void pp2() {
-    WritingtoaMailslot(SlotNameServer, TEXT("Второе сообщение для сервера ")); Sleep(16000);
+    Sleep(1000);WritingtoaMailslot(SlotNameServer, TEXT("Второе сообщение для сервера ")); Sleep(16000);
     MakeSlot(SlotNameClient2, TEXT(" клиента2 "),2); int h = 0; Sleep(19000);//ждём
     cout << "\n====|Почтовый ящик второго клиента|====\n";
     while (TRUE) {
