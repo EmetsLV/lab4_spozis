@@ -23,9 +23,12 @@ LPCTSTR SlotNameClient1 = TEXT("\\\\.\\mailslot\\client1_mailslot");//ящик �
 LPCTSTR SlotNameClient2 = TEXT("\\\\.\\mailslot\\client2_mailslot");//ящик второго клиента
 void ms0(); void ms1(); void ms2();//действия потоков
 //==========всё для каналов
-void mother(); void doch(); void sinok();
+void mother(); void doch(); void sinok();//действия потоков
 HANDLE  hNamedPipe2;//глобальные переменные
 LPCTSTR LpPipeName = TEXT("\\\\.\\pipe\\MyPipe");
+//==========всё для отображения файлов
+HANDLE hFileMap; LPCTSTR lpFileShre = TEXT("MyFileShre"); LPVOID lpFileMap;
+void MappingServer(); void MappingSlave1(); void MappingSlave2();//действия потоков
 
 int main()
 {
@@ -51,7 +54,8 @@ int main()
             break;
         }
         case 2: {
-
+            thread potokF0(MappingServer); thread potokF1(MappingSlave1); thread potokF2(MappingSlave2);
+            potokF0.join();  potokF1.join(); potokF2.join();//запускаем потоки 
             break;
         }
         case 3: {exit(0); break;}
@@ -59,54 +63,111 @@ int main()
     }
     _getch(); return 0;
 }
+/////=====ОТОБРАЖЕНИЕ ФАЙЛОВ
+void MappingServer() {
+    LPCWSTR szMsg = TEXT("Привет"); TCHAR  fnBuf[BUFSIZE]; LPVOID lpFileMap;
+    hFileMap = CreateFileMapping((HANDLE)0xFFFFFFFF,NULL,PAGE_READWRITE,0,BUFSIZE,lpFileShre);
+    if (hFileMap==0) { _tprintf(TEXT("CreateFileMapping провалилась,из-за ошибки (%d)\n"), GetLastError()); }
+    else  cout << "\n=====/Создание беседы: Студенческая общага/=====\n";
+    lpFileMap = MapViewOfFile(hFileMap,   // handle to map object
+        FILE_MAP_ALL_ACCESS, // read/write permission
+        0, 0, BUFSIZE);
+    if (lpFileMap == 0) { _tprintf(TEXT("MapViewOfFile провалилась,из-за ошибки (%d)\n"), GetLastError()); }      
+    CopyMemory(lpFileMap, szMsg, sizeof(szMsg));//запись данных в файл
+    _tprintf(TEXT("Студент1: %s\n"), szMsg);
+    Sleep(500);
+    CopyMemory(fnBuf, lpFileMap, sizeof(fnBuf));//считываие данных из файла
+    if (fnBuf != 0) { cout << "Студент1 прочёл сообщение\n"; }
+    Sleep(1500);
+    szMsg = TEXT("А мне пришла :3 Так что пойду поем. Заскакивайте");
+    CopyMemory(lpFileMap, szMsg, sizeof(szMsg));//запись данных в файл
+    _tprintf(TEXT("Студент1: %s\n"), szMsg);
+    Sleep(1300);
+    UnmapViewOfFile(lpFileMap);
+    CloseHandle(hFileMap); cout << "=====/Закрытие беседы: Студенческая общага/=====\n\n";
+}
+void MappingSlave1() {
+    LPCWSTR szMsg = TEXT("Привет :)"); TCHAR  fnBuf[BUFSIZE]; LPVOID lpFileMap;
+    Sleep(500);
+    hFileMap = OpenFileMapping( FILE_MAP_ALL_ACCESS,   // read/write access
+        FALSE,                 // do not inherit the name
+        lpFileShre);               // name of mapping object
+    if (hFileMap == 0) { _tprintf(TEXT("OpenFileMapping провалилась,из-за ошибки (%d)\n"), GetLastError()); }
+    lpFileMap = MapViewOfFile(hFileMap, FILE_MAP_ALL_ACCESS, 0, 0, BUFSIZE);
+    if (lpFileMap == 0) { _tprintf(TEXT("MapViewOfFile провалилась,из-за ошибки (%d)\n"), GetLastError()); }
+    CopyMemory(fnBuf, lpFileMap, sizeof(fnBuf));//считываие данных из файла
+    if (fnBuf != 0) { cout<<"Студент2 прочёл сообщение\n"; }
+    CopyMemory(lpFileMap, szMsg, sizeof(szMsg));//запись данных в файл
+    _tprintf(TEXT("Студент2: %s\n"), szMsg);
+    Sleep(1000);
+    CopyMemory(fnBuf, lpFileMap, sizeof(fnBuf));//считываие данных из файла
+    if (fnBuf != 0) { cout << "Студент2 прочёл сообщение\n"; }
+    szMsg = TEXT("Мне нет. Пока что только дотация");
+    CopyMemory(lpFileMap, szMsg, sizeof(szMsg));//запись данных в файл
+    _tprintf(TEXT("Студент2: %s\n"), szMsg);
+    Sleep(500);
+    CopyMemory(fnBuf, lpFileMap, sizeof(fnBuf));//считываие данных из файла
+    if (fnBuf != 0) { cout << "Студент2 прочёл сообщение\n"; }
+    szMsg = TEXT("Меня дважды звать не надо");
+    CopyMemory(lpFileMap, szMsg, sizeof(szMsg));//запись данных в файл
+    _tprintf(TEXT("Студент2: %s\n"), szMsg);
+    UnmapViewOfFile(lpFileMap);
+}
+void MappingSlave2() {
+    LPCWSTR szMsg = TEXT("Здарова. Вам стипендия пришла?"); TCHAR  fnBuf[BUFSIZE]; LPVOID lpFileMap;
+    Sleep(1000);
+    hFileMap = OpenFileMapping(FILE_MAP_ALL_ACCESS, FALSE, lpFileShre);  
+    if (hFileMap == 0) { _tprintf(TEXT("OpenFileMapping провалилась,из-за ошибки (%d)\n"), GetLastError()); }
+    lpFileMap = MapViewOfFile(hFileMap, FILE_MAP_ALL_ACCESS, 0, 0, BUFSIZE);
+    if (lpFileMap == 0) { _tprintf(TEXT("MapViewOfFile провалилась,из-за ошибки (%d)\n"), GetLastError()); }
+    CopyMemory(fnBuf, lpFileMap, sizeof(fnBuf));//считываие данных из файла
+    if (fnBuf != 0) { cout << "Студент3 прочёл сообщение\n"; }
+    CopyMemory(lpFileMap, szMsg, sizeof(szMsg));//запись данных в файл
+    _tprintf(TEXT("Студент3: %s\n"), szMsg);
+    Sleep(1200);
+    CopyMemory(fnBuf, lpFileMap, sizeof(fnBuf));//считываие данных из файла
+    if (fnBuf != 0) { cout << "Студент3 прочёл сообщение\n"; }
+    szMsg = TEXT("Уже бегу");
+    CopyMemory(lpFileMap, szMsg, sizeof(szMsg));//запись данных в файл
+    _tprintf(TEXT("Студент3: %s\n"), szMsg);
+    UnmapViewOfFile(lpFileMap);
+}
 /////=====КАНАЛЫ
 void mother() {
     BOOL fConnected; DWORD cbRead, cbWritten; LPCWSTR szBuf = TEXT("Привет"); TCHAR  fnBuf[BUFSIZE];
-
-    HANDLE hNamedPipe = CreateNamedPipe(LpPipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES, 512, 512, 5000, NULL);
+     HANDLE hNamedPipe = CreateNamedPipe(LpPipeName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_MESSAGE | PIPE_READMODE_MESSAGE | PIPE_WAIT, PIPE_UNLIMITED_INSTANCES, 512, 512, 5000, NULL);
     if (hNamedPipe == INVALID_HANDLE_VALUE) { _tprintf(TEXT("CreateNamedPipe провалилась,из-за ошибки (%d)\n"), GetLastError()); }
     fConnected = ConnectNamedPipe(hNamedPipe, NULL);
-    if (!fConnected) {
-        _tprintf(TEXT("ConnectNamedPipe провалилась,из-за ошибки (%d)\n"), GetLastError());
-        CloseHandle(hNamedPipe);
-    }
-    cout << "\n===== Семейный чат открыт =====";
+    if (!fConnected) { _tprintf(TEXT("ConnectNamedPipe провалилась,из-за ошибки (%d)\n"), GetLastError());  CloseHandle(hNamedPipe); }
+    else  cout << "\n===== Семейный чат открыт =====";
+    cout << "\nМама подключилась к чату"; 
     WriteFile(hNamedPipe,        // handle to pipe 
         szBuf,     // buffer to write from 
         sizeof(szBuf) + 1, // number of bytes to write 
         &cbWritten,   // number of bytes written 
         NULL);        // not overlapped I/O 
-    cout << "\nМама подключилась к чату";
-    _tprintf(TEXT("\nМама отправила сообщение:  %s"), szBuf);
+     _tprintf(TEXT("\nМама отправила сообщение:  %s"), szBuf);
     while (1) {
         if (ReadFile(hNamedPipe, fnBuf, BUFSIZE * sizeof(TCHAR), &cbRead, NULL)) {
             cout << "\nМама прочла сообщение";
             szBuf = TEXT("Как дела?");
-            WriteFile(hNamedPipe, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL);
-            _tprintf(TEXT("\nМама отправила сообщение:  %s"), szBuf);
+            if (WriteFile(hNamedPipe, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL)){ _tprintf(TEXT("\nМама отправила сообщение:  %s"), szBuf); }
             Sleep(700); break;
         }
         else { _tprintf(TEXT("WriteFile провалилась,из-за ошибки (%d)\n"), GetLastError()); break; }
     }
     DisconnectNamedPipe(hNamedPipe);
     fConnected = ConnectNamedPipe(hNamedPipe, NULL);
-    if (!fConnected) {
-        _tprintf(TEXT("ConnectNamedPipe провалилась,из-за ошибки (%d)\n"), GetLastError());
-        CloseHandle(hNamedPipe); _getch();
-    }
+    if (!fConnected) { _tprintf(TEXT("ConnectNamedPipe провалилась,из-за ошибки (%d)\n"), GetLastError());CloseHandle(hNamedPipe); _getch(); }
     cout << "\nМама прочла сообщение";
     szBuf = TEXT("Окей, жду.");
-    WriteFile(hNamedPipe, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL);
-    _tprintf(TEXT("\nМама отправила сообщение:  %s"), szBuf);
+    if (WriteFile(hNamedPipe, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL)) { _tprintf(TEXT("\nМама отправила сообщение:  %s"), szBuf); }
     while (1) {
         if (ReadFile(hNamedPipe, fnBuf, BUFSIZE * sizeof(TCHAR), &cbRead, NULL)) {
             cout << "\nМама прочла сообщение";
             szBuf = TEXT("А как твои дела?");
-            WriteFile(hNamedPipe, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL);
-            _tprintf(TEXT("\nМама отправила сообщение:  %s"), szBuf);
-            Sleep(1000);
-            WriteFile(hNamedPipe, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL);
-            Sleep(1000);
+            if (WriteFile(hNamedPipe, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL)) { _tprintf(TEXT("\nМама отправила сообщение:  %s"), szBuf); }
+            Sleep(2000);
             cout << "\nМама прочла сообщение";
             break;
         }
@@ -117,20 +178,18 @@ void mother() {
 }
 void doch() {
     DWORD cbRead, cbWritten; LPCWSTR szBuf = TEXT("Привет :)"); TCHAR  fnBuf[BUFSIZE];
-    Sleep(2000);
+    Sleep(3500);
     HANDLE hNamedPipe1 = CreateFile(LpPipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
     if (hNamedPipe1 == INVALID_HANDLE_VALUE) { _tprintf(TEXT("Дочка не смогла написать,из-за ошибки (%d)\n"), GetLastError()); }
+    else  Sleep(1000); cout << "\nДочь подключилась к чату";
     while (1) {
         if (ReadFile(hNamedPipe1, fnBuf, BUFSIZE * sizeof(TCHAR), &cbRead, NULL)) {
-            cout << "\nДочь подключилась к чату";
             cout << "\nДочь прочла сообщение";
-            WriteFile(hNamedPipe1, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL);
-            _tprintf(TEXT("\nДочь отправила сообщение:  %s"), szBuf);
+            if (WriteFile(hNamedPipe1, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL)) { _tprintf(TEXT("\nДочь отправила сообщение:  %s"), szBuf); }
             Sleep(100);
             cout << "\nДочь прочла сообщение";
             szBuf = TEXT("Хорошо. Сейчас брата толкну, тоже ответит");
-            WriteFile(hNamedPipe1, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL);
-            _tprintf(TEXT("\nДочь отправила сообщение:  %s"), szBuf);////
+            if (WriteFile(hNamedPipe1, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL)) { _tprintf(TEXT("\nДочь отправила сообщение:  %s"), szBuf); }
             break;
         }
         else { _tprintf(TEXT("WriteFile провалилась,из-за ошибки (%d)\n"), GetLastError()); break; }
@@ -139,20 +198,18 @@ void doch() {
 }
 void sinok() {
     DWORD cbRead, cbWritten; LPCWSTR szBuf = TEXT("Привет!"); TCHAR  fnBuf[BUFSIZE];
-    Sleep(5000);
+    Sleep(5500);
     hNamedPipe2 = CreateFile(LpPipeName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
     if (hNamedPipe2 == INVALID_HANDLE_VALUE) { _tprintf(TEXT("Сынок не смог написать,из-за ошибки (%d)\n"), GetLastError()); }
+    else cout << "\nСын подключился к чату";
     while (1) {
         if (ReadFile(hNamedPipe2, fnBuf, BUFSIZE * sizeof(TCHAR), &cbRead, NULL)) {
-            cout << "\nСын подключился к чату";
             cout << "\nСын прочёл сообщение";
-            WriteFile(hNamedPipe2, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL);
-            _tprintf(TEXT("\nСын отправил сообщение:  %s"), szBuf);
+            if (WriteFile(hNamedPipe2, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL)) { _tprintf(TEXT("\nСын отправил сообщение:  %s"), szBuf); }
             Sleep(100);
             cout << "\nСын прочёл сообщение";
             szBuf = TEXT("Тоже хорошо :3");
-            WriteFile(hNamedPipe2, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL);
-            _tprintf(TEXT("\nСын отправил сообщение:  %s"), szBuf);////
+            if (WriteFile(hNamedPipe2, szBuf, sizeof(szBuf) + 1, &cbWritten, NULL)) { _tprintf(TEXT("\nСын отправил сообщение:  %s"), szBuf); }
             break;
         }
         else { _tprintf(TEXT("WriteFile провалилась,из-за ошибки (%d)\n"), GetLastError()); break; }
@@ -194,31 +251,24 @@ void ms2() {
     }
 }
 void WritingtoaMailslot(LPCTSTR lpszSlotName, LPCTSTR lpszMessage2) {
-    // С помощью функции CreateFile клиент открывает mailslot для записи сообщений
-    HANDLE hFile = CreateFile(lpszSlotName,
+    HANDLE hFile = CreateFile(lpszSlotName,    // С помощью функции CreateFile клиент открывает mailslot для записи сообщений
         GENERIC_WRITE,
         FILE_SHARE_READ,               // Требуется для записи в mailslot 
         (LPSECURITY_ATTRIBUTES)NULL,
         OPEN_EXISTING,
         FILE_ATTRIBUTE_NORMAL,
         (HANDLE)NULL);
-    if (hFile == INVALID_HANDLE_VALUE) {
-        cout << "Ошибка открытия почтового ящика\n";
-    }
-    // Запись сообщения в почтовый ящик
-    WriteSlot(hFile, lpszMessage2);
+    if (hFile == INVALID_HANDLE_VALUE) { cout << "Ошибка открытия почтового ящика\n"; }
+    WriteSlot(hFile, lpszMessage2);    // Запись сообщения в почтовый ящик
 }
-BOOL ReadSlot(int rr)
-{
+BOOL ReadSlot(int rr){
     DWORD cbMessage, cMessage, cbRead;  BOOL fResult; LPTSTR lpszBuffer;
     TCHAR achID[80]; DWORD cAllMessages; HANDLE hEvent;  OVERLAPPED ov;
     cbMessage = cMessage = cbRead = 0;
-    // Дескриптор почтового ящика "hSlot" определен глобально. 
     hEvent = CreateEvent(NULL, FALSE, FALSE, TEXT("ExampleSlot"));
     if (NULL == hEvent)
         return FALSE;
     ov.Offset = 0; ov.OffsetHigh = 0;  ov.hEvent = hEvent;
-
     if (rr == 0) {
         fResult = GetMailslotInfo(hSlot, // дескриптор mailslot’а
             (LPDWORD)NULL,               // без ограничения размера сообщения
@@ -226,48 +276,26 @@ BOOL ReadSlot(int rr)
             &cMessage,                    // количество сообщений в ящике 
             (LPDWORD)NULL);              // без таймаута чтения 
     }
-    if (rr == 1) {
-        fResult = GetMailslotInfo(hSlot1, // дескриптор mailslot’а
-            (LPDWORD)NULL,               // без ограничения размера сообщения
-            &cbMessage,                   // размер следующего сообщения
-            &cMessage,                    // количество сообщений в ящике 
-            (LPDWORD)NULL);              // без таймаута чтения 
-    }
-    if (rr == 2) {
-        fResult = GetMailslotInfo(hSlot2, // дескриптор mailslot’а
-            (LPDWORD)NULL,               // без ограничения размера сообщения
-            &cbMessage,                   // размер следующего сообщения
-            &cMessage,                    // количество сообщений в ящике 
-            (LPDWORD)NULL);              // без таймаута чтения 
-    }
-
+    if (rr == 1) {fResult = GetMailslotInfo(hSlot1, (LPDWORD)NULL,&cbMessage, &cMessage, (LPDWORD)NULL); }
+    if (rr == 2) { fResult = GetMailslotInfo(hSlot2, (LPDWORD)NULL, &cbMessage, &cMessage, (LPDWORD)NULL); }
     if (!fResult) { printf("Ошибка при получении информации о почтовом ящике %d.\n", GetLastError()); return FALSE; }
     if (cbMessage == MAILSLOT_NO_MESSAGE) { printf("Ожидаем сообщения...\n"); return TRUE; }
     cAllMessages = cMessage;
-    while (cMessage != 0)  // Считываем все сообщения
-    {
-        // Создаем строку с номером сообщения
-        StringCchPrintf((LPTSTR)achID, 80, TEXT("\nСообщение #%d из %d\n"), cAllMessages - cMessage + 1, cAllMessages);
-        // Выделяем память для сообщения. 
-        lpszBuffer = (LPTSTR)GlobalAlloc(GPTR,
-            lstrlen((LPTSTR)achID) * sizeof(TCHAR) + cbMessage);
+    while (cMessage != 0) { // Считываем все сообщения    
+        StringCchPrintf((LPTSTR)achID, 80, TEXT("\nСообщение #%d из %d\n"), cAllMessages - cMessage + 1, cAllMessages);        // Создаем строку с номером сообщения
+        lpszBuffer = (LPTSTR)GlobalAlloc(GPTR,lstrlen((LPTSTR)achID) * sizeof(TCHAR) + cbMessage);        // Выделяем память для сообщения. 
         if (NULL == lpszBuffer)
             return FALSE;
         lpszBuffer[0] = '\0';
-        // Считываем сообщение из почтового ящика
-        if (rr == 0) { fResult = ReadFile(hSlot, lpszBuffer, cbMessage, &cbRead, &ov); }
-        if (rr == 1) { fResult = ReadFile(hSlot1, lpszBuffer, cbMessage, &cbRead, &ov); }
-        if (rr == 2) { fResult = ReadFile(hSlot2, lpszBuffer, cbMessage, &cbRead, &ov); }
+        if (rr == 0) { fResult = ReadFile(hSlot, lpszBuffer, cbMessage, &cbRead, &ov); }        // Считываем сообщение из почтового ящика
+        if (rr == 1) { fResult = ReadFile(hSlot1, lpszBuffer, cbMessage, &cbRead, &ov); }        // Считываем сообщение из почтового ящика
+        if (rr == 2) { fResult = ReadFile(hSlot2, lpszBuffer, cbMessage, &cbRead, &ov); }        // Считываем сообщение из почтового ящика
         if (!fResult) {
             printf("Ошибка чтения сообщения: %d.\n", GetLastError());
             GlobalFree((HGLOBAL)lpszBuffer);
             return FALSE;
         }
-        // Формируем строку с номером и текстом сообщения. 
-        StringCbCat(lpszBuffer,
-            lstrlen((LPTSTR)achID) * sizeof(TCHAR) + cbMessage,
-            (LPTSTR)achID);
-        // Выводим сообщение на экран. 
+        StringCbCat(lpszBuffer, lstrlen((LPTSTR)achID) * sizeof(TCHAR) + cbMessage, (LPTSTR)achID);        // Формируем строку с номером и текстом сообщения. 
         _tprintf(TEXT("Содержимое почтового ящика: %s\n"), lpszBuffer);
         GlobalFree((HGLOBAL)lpszBuffer);
         if (rr == 0) {
@@ -277,37 +305,18 @@ BOOL ReadSlot(int rr)
                 &cMessage,                    // количество сообщений в ящике 
                 (LPDWORD)NULL);              // без таймаута чтения 
         }
-        if (rr == 1) {
-            fResult = GetMailslotInfo(hSlot1, // дескриптор mailslot’а
-                (LPDWORD)NULL,               // без ограничения размера сообщения
-                &cbMessage,                   // размер следующего сообщения
-                &cMessage,                    // количество сообщений в ящике 
-                (LPDWORD)NULL);              // без таймаута чтения 
-        }
-        if (rr == 2) {
-            fResult = GetMailslotInfo(hSlot2, // дескриптор mailslot’а
-                (LPDWORD)NULL,               // без ограничения размера сообщения
-                &cbMessage,                   // размер следующего сообщения
-                &cMessage,                    // количество сообщений в ящике 
-                (LPDWORD)NULL);              // без таймаута чтения 
-        }
-        if (!fResult) {
-            printf("Ошибка при получении информации о mailslot’е (%d)\n", GetLastError());
-            return FALSE;
-        }
+        if (rr == 1) { fResult = GetMailslotInfo(hSlot1, (LPDWORD)NULL, &cbMessage,  &cMessage,(LPDWORD)NULL); }
+        if (rr == 2) { fResult = GetMailslotInfo(hSlot2, (LPDWORD)NULL, &cbMessage,  &cMessage, (LPDWORD)NULL);}
+        if (!fResult) {  printf("Ошибка при получении информации о mailslot’е (%d)\n", GetLastError());  return FALSE; }
     }
     CloseHandle(hEvent);
     return TRUE;
 }
-BOOL WriteSlot(HANDLE hSlott, LPCTSTR lpszMessage)
-{
-    // Запись сообщения в почтовый ящик
+BOOL WriteSlot(HANDLE hSlott, LPCTSTR lpszMessage){
     BOOL fResult; DWORD cbWritten;
-    fResult = WriteFile(hSlott, lpszMessage, (DWORD)(lstrlen(lpszMessage) + 1) * sizeof(TCHAR), &cbWritten, (LPOVERLAPPED)NULL);
-    if (!fResult) {
-        printf("Ошибка при отправлении сообщения (%d)\n", GetLastError());
-    }
-    cout << "Сообщение отправлено успешно\n"; return TRUE;
+    fResult = WriteFile(hSlott, lpszMessage, (DWORD)(lstrlen(lpszMessage) + 1) * sizeof(TCHAR), &cbWritten, (LPOVERLAPPED)NULL);    // Запись сообщения в почтовый ящик
+    if (!fResult) { printf("Ошибка при отправлении сообщения (%d)\n", GetLastError()); }
+    else cout << "Сообщение отправлено успешно\n"; return TRUE;
 }
 BOOL WINAPI MakeSlot(LPCTSTR lpszSlotName, LPCTSTR SlotName, int rr) {
     if (rr == 0) {
@@ -318,19 +327,13 @@ BOOL WINAPI MakeSlot(LPCTSTR lpszSlotName, LPCTSTR SlotName, int rr) {
         else _tprintf(TEXT("\nПочтовый ящик %s успешно создан\n"), SlotName);  return TRUE;
     }
     if (rr == 1) {
-        hSlot1 = CreateMailslot(lpszSlotName, 0,    //без максимального размера сообщения  
-            MAILSLOT_WAIT_FOREVER,         //без таймаута при операциях   
-            (LPSECURITY_ATTRIBUTES)NULL); //без атрибутов безопасности       
+        hSlot1 = CreateMailslot(lpszSlotName, 0,  MAILSLOT_WAIT_FOREVER,  (LPSECURITY_ATTRIBUTES)NULL);     
         if (hSlot1 == INVALID_HANDLE_VALUE) { cout << "CreateMailslot не удалось вызвать из-за \n" << GetLastError(); return FALSE; }
         else _tprintf(TEXT("Почтовый ящик %s успешно создан\n"), SlotName);  return TRUE;
     }
     if (rr == 2) {
-        hSlot2 = CreateMailslot(lpszSlotName, 0,    //без максимального размера сообщения  
-            MAILSLOT_WAIT_FOREVER,         //без таймаута при операциях   
-            (LPSECURITY_ATTRIBUTES)NULL); //без атрибутов безопасности       
+        hSlot2 = CreateMailslot(lpszSlotName, 0,   MAILSLOT_WAIT_FOREVER, (LPSECURITY_ATTRIBUTES)NULL);    
         if (hSlot2 == INVALID_HANDLE_VALUE) { cout << "CreateMailslot не удалось вызвать из-за \n" << GetLastError(); return FALSE; }
         else _tprintf(TEXT("Почтовый ящик %s успешно создан\n"), SlotName);  return TRUE;
     }
 }
-
-
